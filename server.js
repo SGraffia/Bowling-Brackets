@@ -23,6 +23,41 @@ const dataPath = path.join(__dirname, 'data/data.json');
 const readData = () => JSON.parse(fs.readFileSync(dataPath));
 const writeData = (data) => fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 
+// --- Redirect root to login ---
+app.get('/', (req, res) => res.redirect('/login'));
+
+// --- Admin Registration ---
+app.get('/admin/register', (req, res) => res.render('admin-register'));
+
+app.post('/admin/register', async (req, res) => {
+  const { name, lane, password, average, secret } = req.body;
+  const adminSecret = process.env.ADMIN_SECRET;
+
+  if (secret !== adminSecret) return res.send('Invalid admin secret');
+  if (!name || !lane || !password || !average) return res.send('All fields required');
+
+  const data = readData();
+  const existing = data.registrations.find(u => u.name === name && u.lane === Number(lane));
+  if (existing) return res.send('User with same name and lane exists');
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const newAdmin = {
+    id: uuidv4(),
+    name,
+    lane: Number(lane),
+    passwordHash,
+    average: Number(average),
+    approved: true,
+    games: [],
+    scoresLocked: false,
+    isAdmin: true
+  };
+
+  data.registrations.push(newAdmin);
+  writeData(data);
+  res.send('Admin registered successfully. You can now login.');
+});
+
 // --- Registration ---
 app.get('/register', (req, res) => res.render('register'));
 
@@ -58,7 +93,7 @@ app.post('/login', async (req, res) => {
   const { name, lane, password } = req.body;
   const data = readData();
   const user = data.registrations.find(u => u.name === name && u.lane === Number(lane));
-  if (!user) return res.send('User not found');
+  if (!user) return res.send('User not found, please register first');
 
   const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) return res.send('Invalid password');
@@ -85,7 +120,10 @@ app.post('/admin/approve/:userId', (req, res) => {
 
   user.approved = true;
   writeData(data);
+
+  // Update brackets
   updateBrackets();
+
   res.redirect('/dashboard');
 });
 
@@ -98,6 +136,12 @@ function updateBrackets() {
   data.brackets = createBrackets(data.registrations, maxBowlers, buyIn);
   writeData(data);
 }
+
+// --- Logout ---
+app.get('/logout', (req, res) => {
+  req.session.destroy();
+  res.redirect('/login');
+});
 
 // --- Start Server ---
 const PORT = process.env.PORT || 3000;

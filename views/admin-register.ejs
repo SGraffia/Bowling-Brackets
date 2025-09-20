@@ -1,9 +1,10 @@
-<h2>Register</h2>
-<form action="/register" method="post">
+<h2>Admin Registration</h2>
+<form action="/admin/register" method="post">
   <input type="text" name="name" placeholder="Name" required/>
   <input type="number" name="lane" placeholder="Lane" required/>
   <input type="password" name="password" placeholder="Password" required/>
   <input type="number" name="average" placeholder="Average" required/>
-  <button type="submit">Register</button>
+  <input type="password" name="secret" placeholder="Admin Secret" required/>
+  <button type="submit">Register Admin</button>
 </form>
-<p>Already registered? <a href="/login">Login here</a></p>
+<p>Once registered, <a href="/login">login here</a></p>

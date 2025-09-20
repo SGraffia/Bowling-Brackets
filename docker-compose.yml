@@ -1,3 +1,5 @@
+version: '3.9'
+
 services:
   app:
     build: .
@@ -6,10 +8,11 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/usr/src/app/data
-      - ./public:/usr/src/app/public
       - ./views:/usr/src/app/views
+      - ./public:/usr/src/app/public
     environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - BUY_IN=5
-      - MAX_BOWLERS=8
+      NODE_ENV: production
+      PORT: 3000
+      BUY_IN: 5
+      MAX_BOWLERS: 8
+      ADMIN_SECRET: MySuperSecretAdminKey

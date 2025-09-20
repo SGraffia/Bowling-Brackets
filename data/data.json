@@ -1,4 +1,57 @@
 {
-  "registrations": [],
-  "brackets": []
+  "registrations": [
+    {
+      "id": "ca515e93-14ad-4997-9ee9-08ac0acde755",
+      "name": "Steven Graffia",
+      "lane": 16,
+      "passwordHash": "$2a$10$lW86dgLKcbo2dGmnTSllBum9D4HNC76vEuE3vvkDpmhiv2FJUc4IO",
+      "average": 216,
+      "approved": true,
+      "games": [],
+      "scoresLocked": false,
+      "isAdmin": true
+    },
+    {
+      "id": "7b1138cd-d0ac-4e75-96d2-bb62f513ed3d",
+      "name": "Test Persion",
+      "lane": 14,
+      "passwordHash": "$2a$10$crh9zJbcD/efiUmBu8Cz2.lAvh4GeQpitcSgnf.H5r6o.ScBdLhQ.",
+      "average": 200,
+      "approved": true,
+      "games": [],
+      "scoresLocked": false
+    },
+    {
+      "id": "de37f370-121b-4107-a318-f178dcbba6da",
+      "name": "Test Person 2",
+      "lane": 5,
+      "passwordHash": "$2a$10$RvuyAc90/zfJ3BWtiE5NHeq/SOcor8r9nvjjMaseYD32Obmn6lMxS",
+      "average": 170,
+      "approved": true,
+      "games": [],
+      "scoresLocked": false
+    }
+  ],
+  "brackets": [
+    {
+      "id": "bracket-1",
+      "bowlers": [
+        "ca515e93-14ad-4997-9ee9-08ac0acde755",
+        "7b1138cd-d0ac-4e75-96d2-bb62f513ed3d",
+        "de37f370-121b-4107-a318-f178dcbba6da",
+        "admin-placeholder-9ea01d00-dcc4-450e-b951-21e20c139180",
+        "admin-placeholder-347f13e5-014d-4da1-b7d8-c1286efb8d8c",
+        "admin-placeholder-8079f7e2-a9d0-48c9-a95d-e769e358f50d",
+        "admin-placeholder-e16f798d-38c6-457c-9063-efe4816313bf",
+        "admin-placeholder-86039148-4549-4af9-9da1-c1d80c834f1b"
+      ],
+      "status": "open",
+      "buyIn": 5,
+      "prizePool": {
+        "total": 40,
+        "firstPlace": 35,
+        "secondPlace": 5
+      }
+    }
+  ]
 }
