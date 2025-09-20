@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bracket Results</title>
+</head>
+<body>
+  <h1>Bracket Results</h1>
+  <% results.forEach(r => { %>
+    <div>
+      Match: <%= r.matchup[0] %> vs <%= r.matchup[1] %><br>
+      Scores: <%= r.scores[0] %> - <%= r.scores[1] %><br>
+      Winner: <%= r.winner %>
+    </div>
+    <hr>
+  <% }) %>
+  <a href="/admin">Back to Admin</a>
+</body>
+</html>

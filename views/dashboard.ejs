@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+</head>
+<body>
+  <h1>Welcome, <%= bowler.name %></h1>
+  <p>Your Average: <%= bowler.average %></p>
+  <p>Your Lane: <%= bowler.lane %></p>
+
+  <h2>Your Brackets</h2>
+  <% myBrackets.forEach(b => { %>
+    <div>
+      Week <%= b.week %> - Status: 
+      <%= b.approvedBowlers.includes(bowler.id) ? "Approved" : "Pending Admin Approval" %>
+      - Buy-in: $<%= b.buyIn %>
+    </div>
+  <% }) %>
+
+  <h3>Update Your Info</h3>
+  <form action="/dashboard/update" method="POST">
+    <label>Average:</label><input type="number" name="average" value="<%= bowler.average %>" required><br>
+    <label>Lane Number:</label><input type="number" name="lane" value="<%= bowler.lane %>" required><br>
+    <button type="submit">Update</button>
+  </form>
+
+  <a href="/logout">Logout</a>
+</body>
+</html>

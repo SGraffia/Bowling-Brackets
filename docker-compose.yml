@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  bowling:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - SESSION_SECRET=${SESSION_SECRET}
+    volumes:
+      - ./data.json:/app/data.json
