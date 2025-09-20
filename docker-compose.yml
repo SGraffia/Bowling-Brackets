@@ -1,10 +1,16 @@
-version: "3.9"
+version: '3.9'
+
 services:
-  bowling:
+  app:
     build: .
+    container_name: bowling-league
     ports:
       - "3000:3000"
-    environment:
-      - SESSION_SECRET=${SESSION_SECRET}
     volumes:
-      - ./data.json:/app/data.json
+      - ./data:/usr/src/app/data
+      - ./public:/usr/src/app/public
+      - ./views:/usr/src/app/views
+      - ./utils:/usr/src/app/utils
+      - ./bracket.js:/usr/src/app/bracket.js
+    env_file:
+      - .env

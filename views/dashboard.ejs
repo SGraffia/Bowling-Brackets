@@ -1,29 +1,43 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Dashboard</title>
-</head>
-<body>
-  <h1>Welcome, <%= bowler.name %></h1>
-  <p>Your Average: <%= bowler.average %></p>
-  <p>Your Lane: <%= bowler.lane %></p>
+<h2>Welcome <%= user.name %></h2>
 
-  <h2>Your Brackets</h2>
-  <% myBrackets.forEach(b => { %>
+<h3>Your Brackets</h3>
+<% brackets.forEach(bracket => { 
+    if (bracket.bowlers.includes(user.id)) { %>
     <div>
-      Week <%= b.week %> - Status: 
-      <%= b.approvedBowlers.includes(bowler.id) ? "Approved" : "Pending Admin Approval" %>
-      - Buy-in: $<%= b.buyIn %>
+        <strong>Bracket: <%= bracket.id %></strong>
+        <p>Bowlers: <%= bracket.bowlers.join(', ') %></p>
+        <form method="post" action="/submit-score">
+            <input type="hidden" name="bowlerId" value="<%= user.id %>"/>
+            <input type="hidden" name="bracketId" value="<%= bracket.id %>"/>
+            <input type="number" name="scores[]" placeholder="Game 1" required/>
+            <input type="number" name="scores[]" placeholder="Game 2" required/>
+            <input type="number" name="scores[]" placeholder="Game 3" required/>
+            <button type="submit">Submit Scores</button>
+        </form>
     </div>
-  <% }) %>
+<% }}); %>
 
-  <h3>Update Your Info</h3>
-  <form action="/dashboard/update" method="POST">
-    <label>Average:</label><input type="number" name="average" value="<%= bowler.average %>" required><br>
-    <label>Lane Number:</label><input type="number" name="lane" value="<%= bowler.lane %>" required><br>
-    <button type="submit">Update</button>
-  </form>
+<button id="download-my-bracket">Download My Bracket</button>
 
-  <a href="/logout">Logout</a>
-</body>
-</html>
+<h3>Admin Controls</h3>
+<button id="download-weekly-snapshot">Download Weekly Snapshot (All Brackets)</button>
+
+<script>
+document.getElementById('download-my-bracket').addEventListener('click', async () => {
+  const bowlerId = "<%= user.id %>";
+  const res = await fetch(`/download-my-bracket/${bowlerId}`);
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url; link.download = 'My_Bracket.pdf'; link.click();
+});
+
+document.getElementById('download-weekly-snapshot').addEventListener('click', async () => {
+  const res = await fetch('/close-week', { method: 'POST' });
+  const data = await res.json();
+  const link = document.createElement('a');
+  link.href = `/data/${data.file.split('/').pop()}`;
+  link.download = 'Weekly_Snapshot.pdf';
+  link.click();
+});
+</script>

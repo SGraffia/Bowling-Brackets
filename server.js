@@ -1,144 +1,92 @@
-import express from "express";
-import bodyParser from "body-parser";
-import fs from "fs";
-import session from "express-session";
-import bcrypt from "bcrypt";
-import { v4 as uuidv4 } from "uuid";
-import { createBowlers, runBracket, calculatePrize } from "./bracket.js";
+const express = require('express');
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
+const { createBowlerPDF, calculatePrizePool, generateWeeklySnapshot } = require('./utils/snapshot');
+const { createBrackets } = require('./bracket');
+const { v4: uuidv4 } = require('uuid');
+require('dotenv').config();
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
+const PORT = process.env.PORT || 3000;
+const DATA_FILE = path.join(__dirname, 'data', 'data.json');
+const MAX_BOWLERS = Number(process.env.MAX_BOWLERS) || 8;
+
+app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static("public"));
-app.set("view engine", "ejs");
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Session
-app.use(session({
-  secret: process.env.SESSION_SECRET || "secret",
-  resave: false,
-  saveUninitialized: true
-}));
+let data = JSON.parse(fs.readFileSync(DATA_FILE));
+function saveData() { fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2)); }
 
-// Persistent Data
-const DATA_FILE = "./data.json";
-let registrations = [];
-let users = [];
-let brackets = [];
+// ----- Routes -----
 
-function loadData() {
-  if (fs.existsSync(DATA_FILE)) {
-    const json = JSON.parse(fs.readFileSync(DATA_FILE));
-    registrations = json.registrations || [];
-    users = json.users || [];
-    brackets = json.brackets || [];
-  }
-}
-function saveData() {
-  fs.writeFileSync(DATA_FILE, JSON.stringify({ registrations, users, brackets }, null, 2));
-}
-loadData();
-
-// Handicap
-const HANDICAP_BASE = 220;
-const HANDICAP_PCT = 0.9;
-
-// Auth
-function requireLogin(req, res, next) {
-  if (!req.session.userId) return res.redirect("/login");
-  next();
-}
-function requireAdmin(req, res, next) {
-  const user = users.find(u => u.id === req.session.userId);
-  if (!user || !user.admin) return res.send("Forbidden");
-  next();
-}
-
-// Signup/Login
-app.get("/signup", (req,res)=>res.render("signup"));
-app.post("/signup", async (req,res)=>{
-  const { username, password, name, average, lane } = req.body;
-  if (users.find(u=>u.username===username)) return res.send("Username exists");
-  const passwordHash = await bcrypt.hash(password,10);
-  const bowlerId = uuidv4();
-  registrations.push({ id: bowlerId, name, average: parseInt(average), lane: parseInt(lane) });
-  users.push({ id: uuidv4(), username, passwordHash, bowlerId, admin: false });
+app.get('/', (req, res) => res.render('login'));
+app.get('/register', (req, res) => res.render('register'));
+app.post('/register', (req, res) => {
+  const { name, average } = req.body;
+  const id = uuidv4();
+  data.registrations.push({ id, name, average: Number(average), approved: false, games: [], scoresLocked: false });
   saveData();
-  res.redirect("/login");
+  res.redirect('/');
 });
 
-app.get("/login",(req,res)=>res.render("login"));
-app.post("/login",async(req,res)=>{
-  const { username, password } = req.body;
-  const user = users.find(u=>u.username===username);
-  if(!user) return res.send("Invalid credentials");
-  const valid = await bcrypt.compare(password,user.passwordHash);
-  if(!valid) return res.send("Invalid credentials");
-  req.session.userId = user.id;
-  res.redirect("/dashboard");
-});
-app.get("/logout",(req,res)=>{ req.session.destroy(); res.redirect("/login") });
-
-// Bowler Dashboard
-app.get("/dashboard", requireLogin, (req,res)=>{
-  const user = users.find(u=>u.id===req.session.userId);
-  const bowler = registrations.find(b=>b.id===user.bowlerId);
-  const myBrackets = brackets.filter(b => b.bowlers.includes(bowler.id));
-  res.render("dashboard", { bowler, myBrackets });
+app.get('/dashboard/:userId', (req, res) => {
+  const user = data.registrations.find(r => r.id === req.params.userId);
+  res.render('dashboard', { user, brackets: data.brackets, registrations: data.registrations });
 });
 
-// Bowler requests join bracket
-app.post("/bracket/join", requireLogin, (req,res)=>{
-  const { bracketId } = req.body;
-  const user = users.find(u=>u.id===req.session.userId);
-  const bracket = brackets.find(b=>b.id===bracketId);
-  if(!bracket) return res.send("Bracket not found");
-  if(bracket.status!=="open") return res.send("Bracket closed");
-  if(bracket.approvedBowlers.includes(user.bowlerId) || bracket.bowlers.includes(user.bowlerId)) return res.send("Already in bracket");
-  if(bracket.bowlers.length >= 8) return res.send("Bracket is full");
-  bracket.bowlers.push(user.bowlerId);
+app.post('/submit-score', (req, res) => {
+  const { bowlerId, bracketId, scores } = req.body;
+  const bowler = data.registrations.find(r => r.id === bowlerId);
+  const bracket = data.brackets.find(b => b.id === bracketId);
+  if (!bowler || !bracket) return res.status(404).send('Not found');
+  if (bowler.scoresLocked) return res.status(403).send('Scores locked');
+  bowler.games = scores.map((s, i) => ({ game: i+1, score: Number(s) }));
+  bowler.scoresLocked = true;
   saveData();
-  res.send("Request submitted. Waiting for admin approval.");
+  res.send({ success: true });
 });
 
-// Admin view brackets
-app.get("/admin", requireLogin, requireAdmin, (req,res)=>{
-  const adminBrackets = brackets.map(b => {
-    const prizes = calculatePrize(b);
-    return {...b, prizes};
-  });
-  res.render("adminBracket", { brackets: adminBrackets, registrations });
-});
-
-// Admin approve bowler
-app.post("/admin/bracket/approve", requireLogin, requireAdmin, (req,res)=>{
-  const { bracketId, bowlerId } = req.body;
-  const bracket = brackets.find(b=>b.id===bracketId);
-  if(!bracket) return res.status(404).send("Bracket not found");
-  if(bracket.approvedBowlers.length >= 8) return res.send("Bracket full");
-  if(!bracket.approvedBowlers.includes(bowlerId)) bracket.approvedBowlers.push(bowlerId);
+app.post('/approve-buys/:bowlerId', (req, res) => {
+  const bowler = data.registrations.find(r => r.id === req.params.bowlerId);
+  if (!bowler) return res.status(404).send('Bowler not found');
+  bowler.approved = true;
   saveData();
-  res.json({ success:true });
+  res.send({ success: true });
 });
 
-// Close bracket and generate results
-app.get("/bracket/:id/close", requireLogin, requireAdmin, (req,res)=>{
-  const bracket = brackets.find(b=>b.id===req.params.id);
-  if(!bracket) return res.send("Bracket not found");
-  if(bracket.approvedBowlers.length<2) return res.send("Need at least 2 approved bowlers");
-  bracket.status="closed";
-
-  const players = bracket.approvedBowlers.map(id=>{
-    const b = registrations.find(r=>r.id===id);
-    const scores = bracket.gameScores[id] || [];
-    const handicap = Math.max(0,(HANDICAP_BASE-b.average)*HANDICAP_PCT);
-    const netScores = scores.map(s=>s.score + handicap);
-    return {...b, scores, handicap, netScores};
-  });
-
-  const results = runBracket(players);
-  bracket.results = results;
-  saveData();
-  res.render("results", { results });
+app.post('/close-week', (req, res) => {
+  const allClosed = data.brackets.every(b => b.status === 'closed');
+  if (!allClosed) return res.status(400).send('Not all brackets closed');
+  const snapshot = generateWeeklySnapshot(data.brackets, data.registrations);
+  const filePath = path.join(__dirname, 'data', `snapshot_week_${Date.now()}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
+  const pdfPath = createBowlerPDF(snapshot, 'admin');
+  res.send({ success: true, file: pdfPath });
 });
 
-app.listen(3000,()=>console.log("Bowling app running on port 3000"));
+app.get('/download-my-bracket/:bowlerId', (req, res) => {
+  const bowlerId = req.params.bowlerId;
+  const bracket = data.brackets.find(b => b.bowlers.includes(bowlerId));
+  const bowler = data.registrations.find(r => r.id === bowlerId);
+  if (!bracket || !bowler) return res.status(404).send('Bracket or bowler not found');
+  const snapshot = {
+    bracketId: bracket.id,
+    bowler: {
+      id: bowler.id,
+      name: bowler.name,
+      games: bowler.games || [],
+      previousGames: bowler.previousGames || [],
+      scoresLocked: bowler.scoresLocked
+    },
+    prizePool: calculatePrizePool(bracket, bracket.buyIn)
+  };
+  const filePath = path.join(__dirname, 'data', `bowler_${bowlerId}_snapshot.json`);
+  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
+  const pdfPath = createBowlerPDF(snapshot, bowlerId);
+  res.download(pdfPath);
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
