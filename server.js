@@ -1,92 +1,104 @@
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
-const { createBowlerPDF, calculatePrizePool, generateWeeklySnapshot } = require('./utils/snapshot');
-const { createBrackets } = require('./bracket');
+const bcrypt = require('bcryptjs');
+const session = require('express-session');
 const { v4: uuidv4 } = require('uuid');
-require('dotenv').config();
+const { createBrackets, calculatePrizePool } = require('./bracket');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const DATA_FILE = path.join(__dirname, 'data', 'data.json');
-const MAX_BOWLERS = Number(process.env.MAX_BOWLERS) || 8;
-
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static('public'));
 
-let data = JSON.parse(fs.readFileSync(DATA_FILE));
-function saveData() { fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2)); }
+app.use(session({
+  secret: 'secret-key',
+  resave: false,
+  saveUninitialized: false
+}));
 
-// ----- Routes -----
+const dataPath = path.join(__dirname, 'data/data.json');
+const readData = () => JSON.parse(fs.readFileSync(dataPath));
+const writeData = (data) => fs.writeFileSync(dataPath, JSON.stringify(data, null, 2));
 
-app.get('/', (req, res) => res.render('login'));
+// --- Registration ---
 app.get('/register', (req, res) => res.render('register'));
-app.post('/register', (req, res) => {
-  const { name, average } = req.body;
-  const id = uuidv4();
-  data.registrations.push({ id, name, average: Number(average), approved: false, games: [], scoresLocked: false });
-  saveData();
-  res.redirect('/');
-});
 
-app.get('/dashboard/:userId', (req, res) => {
-  const user = data.registrations.find(r => r.id === req.params.userId);
-  res.render('dashboard', { user, brackets: data.brackets, registrations: data.registrations });
-});
+app.post('/register', async (req, res) => {
+  const { name, lane, password, average } = req.body;
+  if (!name || !lane || !password || !average) return res.send('All fields required');
 
-app.post('/submit-score', (req, res) => {
-  const { bowlerId, bracketId, scores } = req.body;
-  const bowler = data.registrations.find(r => r.id === bowlerId);
-  const bracket = data.brackets.find(b => b.id === bracketId);
-  if (!bowler || !bracket) return res.status(404).send('Not found');
-  if (bowler.scoresLocked) return res.status(403).send('Scores locked');
-  bowler.games = scores.map((s, i) => ({ game: i+1, score: Number(s) }));
-  bowler.scoresLocked = true;
-  saveData();
-  res.send({ success: true });
-});
+  const data = readData();
+  const existing = data.registrations.find(u => u.name === name && u.lane === Number(lane));
+  if (existing) return res.send('User with same name and lane exists');
 
-app.post('/approve-buys/:bowlerId', (req, res) => {
-  const bowler = data.registrations.find(r => r.id === req.params.bowlerId);
-  if (!bowler) return res.status(404).send('Bowler not found');
-  bowler.approved = true;
-  saveData();
-  res.send({ success: true });
-});
-
-app.post('/close-week', (req, res) => {
-  const allClosed = data.brackets.every(b => b.status === 'closed');
-  if (!allClosed) return res.status(400).send('Not all brackets closed');
-  const snapshot = generateWeeklySnapshot(data.brackets, data.registrations);
-  const filePath = path.join(__dirname, 'data', `snapshot_week_${Date.now()}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
-  const pdfPath = createBowlerPDF(snapshot, 'admin');
-  res.send({ success: true, file: pdfPath });
-});
-
-app.get('/download-my-bracket/:bowlerId', (req, res) => {
-  const bowlerId = req.params.bowlerId;
-  const bracket = data.brackets.find(b => b.bowlers.includes(bowlerId));
-  const bowler = data.registrations.find(r => r.id === bowlerId);
-  if (!bracket || !bowler) return res.status(404).send('Bracket or bowler not found');
-  const snapshot = {
-    bracketId: bracket.id,
-    bowler: {
-      id: bowler.id,
-      name: bowler.name,
-      games: bowler.games || [],
-      previousGames: bowler.previousGames || [],
-      scoresLocked: bowler.scoresLocked
-    },
-    prizePool: calculatePrizePool(bracket, bracket.buyIn)
+  const passwordHash = await bcrypt.hash(password, 10);
+  const newUser = {
+    id: uuidv4(),
+    name,
+    lane: Number(lane),
+    passwordHash,
+    average: Number(average),
+    approved: false,
+    games: [],
+    scoresLocked: false
   };
-  const filePath = path.join(__dirname, 'data', `bowler_${bowlerId}_snapshot.json`);
-  fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2));
-  const pdfPath = createBowlerPDF(snapshot, bowlerId);
-  res.download(pdfPath);
+
+  data.registrations.push(newUser);
+  writeData(data);
+  res.redirect('/login');
 });
 
+// --- Login ---
+app.get('/login', (req, res) => res.render('login'));
+
+app.post('/login', async (req, res) => {
+  const { name, lane, password } = req.body;
+  const data = readData();
+  const user = data.registrations.find(u => u.name === name && u.lane === Number(lane));
+  if (!user) return res.send('User not found');
+
+  const match = await bcrypt.compare(password, user.passwordHash);
+  if (!match) return res.send('Invalid password');
+
+  req.session.userId = user.id;
+  res.redirect('/dashboard');
+});
+
+// --- Dashboard ---
+app.get('/dashboard', (req, res) => {
+  const data = readData();
+  const user = data.registrations.find(u => u.id === req.session.userId);
+  if (!user) return res.redirect('/login');
+
+  const brackets = data.brackets || [];
+  res.render('dashboard', { user, brackets, data });
+});
+
+// --- Admin approve buy-ins ---
+app.post('/admin/approve/:userId', (req, res) => {
+  const data = readData();
+  const user = data.registrations.find(u => u.id === req.params.userId);
+  if (!user) return res.send('User not found');
+
+  user.approved = true;
+  writeData(data);
+  updateBrackets();
+  res.redirect('/dashboard');
+});
+
+// --- Update Brackets ---
+function updateBrackets() {
+  const data = readData();
+  const buyIn = Number(process.env.BUY_IN || 5);
+  const maxBowlers = Number(process.env.MAX_BOWLERS || 8);
+
+  data.brackets = createBrackets(data.registrations, maxBowlers, buyIn);
+  writeData(data);
+}
+
+// --- Start Server ---
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

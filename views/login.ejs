@@ -1,6 +1,7 @@
 <h2>Login</h2>
-<form action="/dashboard/<%= user ? user.id : '' %>" method="get">
-  <input type="text" name="userId" placeholder="Enter your ID"/>
+<form action="/login" method="post">
+  <input type="text" name="name" placeholder="Name" required/>
+  <input type="number" name="lane" placeholder="Lane" required/>
+  <input type="password" name="password" placeholder="Password" required/>
   <button type="submit">Login</button>
 </form>
-<a href="/register">Register</a>

@@ -1,43 +1,30 @@
-<h2>Welcome <%= user.name %></h2>
+<h2>Welcome, <%= user.name %> | Lane: <%= user.lane %></h2>
 
-<h3>Your Brackets</h3>
-<% brackets.forEach(bracket => { 
-    if (bracket.bowlers.includes(user.id)) { %>
-    <div>
-        <strong>Bracket: <%= bracket.id %></strong>
-        <p>Bowlers: <%= bracket.bowlers.join(', ') %></p>
-        <form method="post" action="/submit-score">
-            <input type="hidden" name="bowlerId" value="<%= user.id %>"/>
-            <input type="hidden" name="bracketId" value="<%= bracket.id %>"/>
-            <input type="number" name="scores[]" placeholder="Game 1" required/>
-            <input type="number" name="scores[]" placeholder="Game 2" required/>
-            <input type="number" name="scores[]" placeholder="Game 3" required/>
-            <button type="submit">Submit Scores</button>
-        </form>
-    </div>
-<% }}); %>
+<% if(user.approved){ %>
+  <p>Your buy-in is approved. You are in the brackets.</p>
+<% } else { %>
+  <p>Waiting for admin approval.</p>
+<% } %>
 
-<button id="download-my-bracket">Download My Bracket</button>
+<h3>Brackets:</h3>
+<ul>
+  <% brackets.forEach(b => { %>
+    <li><strong><%= b.id %></strong> - Prize Pool: $<%= b.prizePool.total %> 
+      (1st: $<%= b.prizePool.firstPlace %>, 2nd: $<%= b.prizePool.secondPlace %>)<br/>
+      Bowlers: 
+      <% b.bowlers.forEach(bid => { %>
+        <%= data.registrations.find(r => r.id === bid)?.name || bid %> 
+      <% }) %>
+    </li>
+  <% }) %>
+</ul>
 
-<h3>Admin Controls</h3>
-<button id="download-weekly-snapshot">Download Weekly Snapshot (All Brackets)</button>
-
-<script>
-document.getElementById('download-my-bracket').addEventListener('click', async () => {
-  const bowlerId = "<%= user.id %>";
-  const res = await fetch(`/download-my-bracket/${bowlerId}`);
-  const blob = await res.blob();
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url; link.download = 'My_Bracket.pdf'; link.click();
-});
-
-document.getElementById('download-weekly-snapshot').addEventListener('click', async () => {
-  const res = await fetch('/close-week', { method: 'POST' });
-  const data = await res.json();
-  const link = document.createElement('a');
-  link.href = `/data/${data.file.split('/').pop()}`;
-  link.download = 'Weekly_Snapshot.pdf';
-  link.click();
-});
-</script>
+<% if(user.isAdmin){ %>
+  <h3>Admin Approvals:</h3>
+  <% data.registrations.filter(r => !r.approved).forEach(u => { %>
+    <form action="/admin/approve/<%= u.id %>" method="post">
+      <%= u.name %> | <%= u.lane %>
+      <button type="submit">Approve Buy-In</button>
+    </form>
+  <% }) %>
+<% } %>

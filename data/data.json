@@ -1,47 +1,4 @@
 {
-  "registrations": [
-    { "id": "bowler1", "name": "Alice", "average": 150, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler2", "name": "Bob", "average": 175, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler3", "name": "Charlie", "average": 160, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler4", "name": "Diana", "average": 170, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler5", "name": "Ethan", "average": 155, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler6", "name": "Fiona", "average": 165, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler7", "name": "George", "average": 180, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler8", "name": "Hannah", "average": 150, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler9", "name": "Ian", "average": 160, "approved": true, "games": [], "scoresLocked": false },
-    { "id": "bowler10", "name": "Jane", "average": 165, "approved": true, "games": [], "scoresLocked": false }
-  ],
-  "brackets": [
-    {
-      "id": "bracket-1",
-      "buyIn": 5,
-      "status": "closed",
-      "bowlers": ["bowler1","bowler2","bowler3","bowler4","bowler5","bowler6","bowler7","admin-bowler-1"]
-    },
-    {
-      "id": "bracket-2",
-      "buyIn": 5,
-      "status": "closed",
-      "bowlers": ["bowler8","bowler9","bowler10","admin-bowler-2","admin-bowler-3","admin-bowler-4","admin-bowler-5","admin-bowler-6"]
-    }
-  ],
-  "transactions": [
-    { "bowlerId": "bowler1", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler2", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler3", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler4", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler5", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler6", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler7", "bracketId": "bracket-1", "amount": 5, "type": "buyin" },
-    { "bowlerId": "admin-bowler-1", "bracketId": "bracket-1", "amount": 5, "type": "autofill" },
-
-    { "bowlerId": "bowler8", "bracketId": "bracket-2", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler9", "bracketId": "bracket-2", "amount": 5, "type": "buyin" },
-    { "bowlerId": "bowler10", "bracketId": "bracket-2", "amount": 5, "type": "buyin" },
-    { "bowlerId": "admin-bowler-2", "bracketId": "bracket-2", "amount": 5, "type": "autofill" },
-    { "bowlerId": "admin-bowler-3", "bracketId": "bracket-2", "amount": 5, "type": "autofill" },
-    { "bowlerId": "admin-bowler-4", "bracketId": "bracket-2", "amount": 5, "type": "autofill" },
-    { "bowlerId": "admin-bowler-5", "bracketId": "bracket-2", "amount": 5, "type": "autofill" },
-    { "bowlerId": "admin-bowler-6", "bracketId": "bracket-2", "amount": 5, "type": "autofill" }
-  ]
+  "registrations": [],
+  "brackets": []
 }

@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   app:
     build: .
@@ -10,7 +8,8 @@ services:
       - ./data:/usr/src/app/data
       - ./public:/usr/src/app/public
       - ./views:/usr/src/app/views
-      - ./utils:/usr/src/app/utils
-      - ./bracket.js:/usr/src/app/bracket.js
-    env_file:
-      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - BUY_IN=5
+      - MAX_BOWLERS=8
