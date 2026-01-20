@@ -1,31 +1,126 @@
-<h2>Welcome, <%= user.name %> | Lane: <%= user.lane %></h2>
-<a href="/logout">Logout</a>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard | Bowling Brackets</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="dashboard">
+  <header class="dashboard-header">
+    <h1>🎳 Bowling Brackets</h1>
+    <div class="user-info">
+      <span class="user-badge">
+        <%= user.isAdmin ? '🛡️ Admin' : '🎳 Bowler' %> | Lane <%= user.lane %>
+      </span>
+      <span class="user-badge"><%= user.name %></span>
+      <a href="/logout" class="logout-btn">Sign Out</a>
+    </div>
+  </header>
 
-<% if(user.approved){ %>
-  <p>Your buy-in is approved. You are in the brackets.</p>
-<% } else { %>
-  <p>Waiting for admin approval.</p>
-<% } %>
+  <main class="dashboard-content">
+    <% if(user.approved){ %>
+      <div class="status-badge approved">
+        ✓ Your buy-in is approved — You're in the brackets!
+      </div>
+    <% } else { %>
+      <div class="status-badge pending">
+        ⏳ Waiting for admin approval
+      </div>
+    <% } %>
 
-<h3>Brackets:</h3>
-<ul>
-  <% brackets.forEach(b => { %>
-    <li><strong><%= b.id %></strong> - Prize Pool: $<%= b.prizePool.total %> 
-      (1st: $<%= b.prizePool.firstPlace %>, 2nd: $<%= b.prizePool.secondPlace %>)<br/>
-      Bowlers: 
-      <% b.bowlers.forEach(bid => { %>
-        <%= data.registrations.find(r => r.id === bid)?.name || bid %> 
-      <% }) %>
-    </li>
-  <% }) %>
-</ul>
+    <section>
+      <div class="section-header">
+        <span class="icon">🏆</span>
+        <h2>Active Brackets</h2>
+      </div>
 
-<% if(user.isAdmin){ %>
-  <h3>Admin Approvals:</h3>
-  <% data.registrations.filter(r => !r.approved).forEach(u => { %>
-    <form action="/admin/approve/<%= u.id %>" method="post">
-      <%= u.name %> | <%= u.lane %>
-      <button type="submit">Approve Buy-In</button>
-    </form>
-  <% }) %>
-<% } %>
+      <% if(brackets.length > 0) { %>
+        <div class="brackets-grid">
+          <% brackets.forEach(b => { %>
+            <div class="bracket-card">
+              <div class="bracket-header">
+                <h3><%= b.id.replace('bracket-', 'Bracket #') %></h3>
+                <span class="bracket-status"><%= b.status %></span>
+              </div>
+              <div class="bracket-body">
+                <div class="prize-pool">
+                  <div class="prize-item">
+                    <div class="label">Total Pool</div>
+                    <div class="amount">$<%= b.prizePool.total %></div>
+                  </div>
+                  <div class="prize-item">
+                    <div class="label">1st Place</div>
+                    <div class="amount gold">$<%= b.prizePool.firstPlace %></div>
+                  </div>
+                  <div class="prize-item">
+                    <div class="label">2nd Place</div>
+                    <div class="amount silver">$<%= b.prizePool.secondPlace %></div>
+                  </div>
+                </div>
+                
+                <ul class="bowlers-list">
+                  <% b.bowlers.forEach(bid => { 
+                    const bowler = data.registrations.find(r => r.id === bid);
+                    const isPlaceholder = bid.startsWith('admin-placeholder');
+                  %>
+                    <li class="bowler-item">
+                      <% if(isPlaceholder) { %>
+                        <div class="bowler-avatar placeholder">?</div>
+                        <span class="bowler-name placeholder">Open Slot</span>
+                      <% } else if(bowler) { %>
+                        <div class="bowler-avatar"><%= bowler.name.charAt(0).toUpperCase() %></div>
+                        <span class="bowler-name"><%= bowler.name %></span>
+                      <% } else { %>
+                        <div class="bowler-avatar placeholder">?</div>
+                        <span class="bowler-name placeholder">Unknown</span>
+                      <% } %>
+                    </li>
+                  <% }) %>
+                </ul>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No brackets available yet. Check back soon!</p>
+        </div>
+      <% } %>
+    </section>
+
+    <% if(user.isAdmin){ %>
+      <section class="admin-section">
+        <div class="section-header">
+          <span class="icon">📋</span>
+          <h2>Pending Approvals</h2>
+        </div>
+        
+        <% const pendingUsers = data.registrations.filter(r => !r.approved); %>
+        <% if(pendingUsers.length > 0) { %>
+          <div class="approval-list">
+            <% pendingUsers.forEach(u => { %>
+              <div class="approval-item">
+                <div class="approval-info">
+                  <div class="approval-avatar"><%= u.name.charAt(0).toUpperCase() %></div>
+                  <div class="approval-details">
+                    <h4><%= u.name %></h4>
+                    <span>Lane <%= u.lane %> • Average: <%= u.average %></span>
+                  </div>
+                </div>
+                <form action="/admin/approve/<%= u.id %>" method="post">
+                  <button type="submit" class="btn btn-success">✓ Approve Buy-In</button>
+                </form>
+              </div>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <div class="empty-state">
+            <p>No pending approvals at this time.</p>
+          </div>
+        <% } %>
+      </section>
+    <% } %>
+  </main>
+</body>
+</html>

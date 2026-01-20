@@ -1,9 +1,48 @@
-<h2>Register</h2>
-<form action="/register" method="post">
-  <input type="text" name="name" placeholder="Name" required/>
-  <input type="number" name="lane" placeholder="Lane" required/>
-  <input type="password" name="password" placeholder="Password" required/>
-  <input type="number" name="average" placeholder="Average" required/>
-  <button type="submit">Register</button>
-</form>
-<p>Already registered? <a href="/login">Login here</a></p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register | Bowling Brackets</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="auth-container">
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">🎳</div>
+        <h2>Join the League</h2>
+        <p class="subtitle">Create your bowler account</p>
+      </div>
+      
+      <form action="/register" method="post">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" class="form-control" placeholder="Enter your full name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="lane">Lane Number</label>
+          <input type="number" id="lane" name="lane" class="form-control" placeholder="Your assigned lane (1-100)" min="1" max="100" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-control" placeholder="Min. 8 characters" minlength="8" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="average">Bowling Average</label>
+          <input type="number" id="average" name="average" class="form-control" placeholder="Your bowling average (0-300)" min="0" max="300" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Create Account</button>
+      </form>
+      
+      <p class="auth-link">
+        Already have an account? <a href="/login">Sign in here</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
